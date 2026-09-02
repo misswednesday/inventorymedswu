@@ -1189,22 +1189,22 @@ function exportRequisitionsFallback() {
   }
 }
 
-// In-Browser Direct Excel Parser (SheetJS Live Reader)
+// In-Browser Direct Excel Parser (SheetJS Live Reader - Full Sync: Add, Edit, Delete)
 function importExcelDirectly(file) {
   if (typeof XLSX === 'undefined') {
     showToast('กรุณารอระบบโหลดสักครู่', 'warning');
     return;
   }
 
-  showToast(`กำลังอ่านข้อมูลจาก ${file.name}...`, 'info');
+  showToast(`กำลังอ่านข้อมูลและซิงก์จาก ${file.name}...`, 'info');
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
 
-      const sheetName = workbook.SheetNames.includes('Data') ? 'Data' : workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const dataSheetName = workbook.SheetNames.includes('Data') ? 'Data' : workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[dataSheetName];
       const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonRows.length < 2) {
@@ -1212,7 +1212,16 @@ function importExcelDirectly(file) {
         return;
       }
 
-      let updatedCount = 0;
+      // Map of existing known images from INVENTORY_DATA
+      const knownImages = {};
+      if (typeof INVENTORY_DATA !== 'undefined' && INVENTORY_DATA.items) {
+        INVENTORY_DATA.items.forEach(it => {
+          if (it.image) knownImages[it.id] = it.image;
+        });
+      }
+
+      // Reconstruct entire inventory from the Excel file
+      const newInventory = [];
       for (let r = 1; r < jsonRows.length; r++) {
         const row = jsonRows[r];
         if (!row || !row[0] || !row[1]) continue;
@@ -1223,21 +1232,46 @@ function importExcelDirectly(file) {
 
         if (!matCode || !desc) continue;
 
-        const invItem = AppState.inventory.find(x => x.id === matCode);
-        if (invItem) {
-          invItem.stock = unrestricted;
-          invItem.name = desc;
-          invItem.unit = bun;
-          updatedCount++;
+        const imgPath = knownImages[matCode] || null;
+        newInventory.push({
+          id: matCode,
+          material: matCode,
+          name: desc,
+          unit: bun,
+          stock: unrestricted,
+          image: imgPath,
+          has_image: imgPath !== null
+        });
+      }
+
+      // Read Departments if present in sheet 2 (other than Data and การเบิก)
+      const deptSheetName = workbook.SheetNames.find(s => s !== dataSheetName && s !== 'การเบิก');
+      if (deptSheetName) {
+        const deptWs = workbook.Sheets[deptSheetName];
+        const deptRows = XLSX.utils.sheet_to_json(deptWs, { header: 1 });
+        const newDepts = [];
+        deptRows.forEach(row => {
+          if (row && row[0]) {
+            const dStr = String(row[0]).trim();
+            if (dStr && !newDepts.includes(dStr)) newDepts.push(dStr);
+          }
+        });
+        if (newDepts.length > 0) {
+          AppState.departments = newDepts.sort();
+          populateDepartmentDropdowns();
         }
       }
 
+      // Replace current active inventory
+      AppState.inventory = newInventory;
       saveStockState();
+
+      // Rerender all views with the updated items
       renderInventoryView();
       renderRequisitionCatalog();
       renderReportsView();
 
-      showToast(`⚡ อัปเดตสต๊อกสด ${updatedCount} รายการจาก Excel สำเร็จแล้ว!`, 'success');
+      showToast(`⚡ ซิงก์สต๊อกสดสำเร็จ! พบทั้งหมด ${newInventory.length} รายการ`, 'success');
     } catch (err) {
       console.error('Error importing Excel:', err);
       showToast('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message, 'error');

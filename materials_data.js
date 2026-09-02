@@ -1,11 +1,11 @@
 // Auto-generated data file for MED SWU Inventory & Requisition System
-// Generated from: วัสดุคงคลัง 1กย69.xlsx at 2026-09-02 14:02:30
+// Generated from: วัสดุคงคลัง 1กย69.xlsx at 2026-09-02 14:49:54
 
 const INVENTORY_DATA = {
   metadata: {
-    generatedAt: "2026-09-02 14:02:30",
-    timestamp: 1788332550281,
-    totalItems: 133,
+    generatedAt: "2026-09-02 14:49:54",
+    timestamp: 1788335394353,
+    totalItems: 132,
     itemsWithImages: 98,
     totalDepartments: 43
   },
@@ -72,15 +72,6 @@ const INVENTORY_DATA = {
     "stock": 4,
     "image": "รูปวัสดุคงคลัง/10100025.png",
     "has_image": true
-  },
-  {
-    "id": "10100026",
-    "material": "10100026",
-    "name": "เครื่องถอนลวดเย็บกระดาษ",
-    "unit": "EA",
-    "stock": 0,
-    "image": null,
-    "has_image": false
   },
   {
     "id": "10100028",
