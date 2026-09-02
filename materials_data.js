@@ -1,12 +1,12 @@
 // Auto-generated data file for MED SWU Inventory & Requisition System
-// Generated from: วัสดุคงคลัง 1กย69.xlsx at 2026-09-02 14:49:54
+// Generated from: วัสดุคงคลัง 1กย69.xlsx at 2026-09-02 15:04:15
 
 const INVENTORY_DATA = {
   metadata: {
-    generatedAt: "2026-09-02 14:49:54",
-    timestamp: 1788335394353,
-    totalItems: 132,
-    itemsWithImages: 98,
+    generatedAt: "2026-09-02 15:04:15",
+    timestamp: 1788336255499,
+    totalItems: 125,
+    itemsWithImages: 96,
     totalDepartments: 43
   },
   departments: [
@@ -110,15 +110,6 @@ const INVENTORY_DATA = {
     "has_image": true
   },
   {
-    "id": "10100043",
-    "material": "10100043",
-    "name": "เทปโฟม 2 หน้า 21 มม.",
-    "unit": "U53",
-    "stock": 0,
-    "image": null,
-    "has_image": false
-  },
-  {
     "id": "10100050",
     "material": "10100050",
     "name": "เทปใส แกน 3 นิ้ว กว้าง 1 นิ้ว",
@@ -182,15 +173,6 @@ const INVENTORY_DATA = {
     "has_image": true
   },
   {
-    "id": "10100074",
-    "material": "10100074",
-    "name": "เทปลบคำผิด เครื่องพิมพ์ดีด",
-    "unit": "EA",
-    "stock": 0,
-    "image": "รูปวัสดุคงคลัง/10100074.png",
-    "has_image": true
-  },
-  {
     "id": "10100075",
     "material": "10100075",
     "name": "เป็กกด (หมุดปักบอร์ด)",
@@ -225,15 +207,6 @@ const INVENTORY_DATA = {
     "stock": 35,
     "image": "รูปวัสดุคงคลัง/10100085.png",
     "has_image": true
-  },
-  {
-    "id": "10100087",
-    "material": "10100087",
-    "name": "แท่นประทับตรา สีแดง-สีน้ำเงิน",
-    "unit": "EA",
-    "stock": 0,
-    "image": null,
-    "has_image": false
   },
   {
     "id": "10100088",
@@ -639,15 +612,6 @@ const INVENTORY_DATA = {
     "stock": 0,
     "image": "รูปวัสดุคงคลัง/10100446.png",
     "has_image": true
-  },
-  {
-    "id": "10100451",
-    "material": "10100451",
-    "name": "ปากกามาร์คเกอร์ 2 หัว",
-    "unit": "U1",
-    "stock": 0,
-    "image": null,
-    "has_image": false
   },
   {
     "id": "10100453",
@@ -1154,15 +1118,6 @@ const INVENTORY_DATA = {
     "has_image": true
   },
   {
-    "id": "10800031",
-    "material": "10800031",
-    "name": "ถุงขยะ",
-    "unit": "PAC",
-    "stock": 0,
-    "image": "รูปวัสดุคงคลัง/10800031.png",
-    "has_image": true
-  },
-  {
     "id": "10800037",
     "material": "10800037",
     "name": "น้ำยาเช็ดกระจก",
@@ -1170,15 +1125,6 @@ const INVENTORY_DATA = {
     "stock": 57,
     "image": "รูปวัสดุคงคลัง/10800037.png",
     "has_image": true
-  },
-  {
-    "id": "10800047",
-    "material": "10800047",
-    "name": "น้ำยาล้างจาน (ขนาดใหญ่)",
-    "unit": "BT",
-    "stock": 0,
-    "image": null,
-    "has_image": false
   },
   {
     "id": "10800051",
@@ -1197,15 +1143,6 @@ const INVENTORY_DATA = {
     "stock": 49,
     "image": "รูปวัสดุคงคลัง/10800070.png",
     "has_image": true
-  },
-  {
-    "id": "10800073",
-    "material": "10800073",
-    "name": "สก็อตไบร์ท",
-    "unit": "EA",
-    "stock": 0,
-    "image": null,
-    "has_image": false
   },
   {
     "id": "10800074",
