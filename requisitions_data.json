@@ -1,0 +1,27 @@
+[
+  {
+    "id": "REQ-20260902-0001",
+    "createdAt": "2026-09-02T07:01:59.613Z",
+    "formattedDate": "2 ก.ย. 2569 14:01 น.",
+    "yearMonth": "2026-09",
+    "department": "งานพัสดุ",
+    "requesterName": "ทดสอบ",
+    "remark": "เบิกใช้งานตามปกติ",
+    "items": [
+      {
+        "id": "10100022",
+        "material": "10100022",
+        "name": "เครื่องเหลาดินสอ",
+        "unit": "U33",
+        "stock": 18,
+        "qty": 1
+      }
+    ],
+    "totalUnits": 1,
+    "status": "approved",
+    "approvedAt": "2026-09-02T07:02:29.197Z",
+    "approvedBy": "หัวหน้างานพัสดุ (Admin)",
+    "rejectionReason": null,
+    "approvedFormattedDate": "2 ก.ย. 2569 14:02 น."
+  }
+]

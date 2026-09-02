@@ -1,0 +1,13 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*.class
+
+# Temporary Excel Locks
+~$*.xlsx
+~$*.xls
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini

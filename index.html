@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจัดการสต๊อกวัสดุคงคลังและระบบเบิกวัสดุ - คณะแพทยศาสตร์ มศว</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <img src="logo.png" alt="MED SWU Logo" class="brand-logo" onerror="this.src='MEDSWU+80.png'">
+        <div class="brand-info">
+          <span class="brand-title">ระบบจัดการสต๊อกวัสดุคงคลังและระบบเบิกวัสดุ</span>
+          <span class="brand-subtitle">คณะแพทยศาสตร์ มหาวิทยาลัยศรีนครินทรวิโรฒ</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div id="currentUserBadge" class="user-badge">
+          <span>🏢</span>
+          <span id="currentRoleText">ผู้ใช้งาน: ภาควิชา/หน่วยงาน</span>
+        </div>
+
+        <!-- Live Sync from Excel (Admin Only) -->
+        <button id="btnLiveSyncExcel" class="btn-auth" title="อัปเดตสต๊อกสดจากไฟล์ Excel ทันที" style="border-color: var(--primary); color: var(--primary); background: var(--primary-light); display: none;">
+          <span>⚡</span>
+          <span>ซิงก์สต๊อกสด (Excel)</span>
+        </button>
+        <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
+
+        <button id="btnSwitchUser" class="btn-auth" title="สลับบทบาทหรือเข้าสู่ระบบ">
+          <span>🔄</span>
+          <span id="btnSwitchUserText">เข้าสู่ระบบ Admin</span>
+        </button>
+
+        <button id="btnQuickCart" class="cart-quick-btn" title="ดูตะกร้าเบิกวัสดุ">
+          <span>🛒</span>
+          <span id="headerCartBadge" class="cart-badge" style="display: none;">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Main Container -->
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="nav-group-title">เมนูหลัก (Main Menu)</div>
+      
+      <a class="nav-item active" data-view="view-inventory">
+        <span class="nav-icon">📦</span>
+        <span class="nav-text">คลังวัสดุคงคลัง</span>
+      </a>
+
+      <a class="nav-item" data-view="view-requisition">
+        <span class="nav-icon">📝</span>
+        <span class="nav-text">เบิกวัสดุคงคลัง</span>
+        <span id="sidebarCartBadge" class="nav-badge" style="display: none;">0</span>
+      </a>
+
+      <!-- Admin Only Menu -->
+      <a id="navItemApprovals" class="nav-item" data-view="view-approvals" style="display: none;">
+        <span class="nav-icon">✅</span>
+        <span class="nav-text">อนุมัติใบเบิก</span>
+        <span id="sidebarPendingBadge" class="nav-badge" style="display: none;">0</span>
+      </a>
+
+      <a class="nav-item" data-view="view-history">
+        <span class="nav-icon">📋</span>
+        <span class="nav-text">ประวัติและสถานะใบเบิก</span>
+      </a>
+
+      <div class="nav-group-title">รายงานและสถิติ</div>
+
+      <a class="nav-item" data-view="view-reports">
+        <span class="nav-icon">📊</span>
+        <span class="nav-text">สรุปรายงานการเบิก</span>
+      </a>
+
+      <div class="sidebar-footer">
+        <div>ฐานข้อมูลวัสดุคงคลัง 2570</div>
+        <div>MED SWU Inventory v2.0</div>
+      </div>
+    </aside>
+
+    <!-- Main Views Container -->
+    <main class="app-content">
+
+      <!-- ============================================================== -->
+      <!-- VIEW 1: คลังวัสดุคงคลัง (Inventory Catalog) -->
+      <!-- ============================================================== -->
+      <section id="view-inventory" class="view-section active">
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1><span>📦</span> สต๊อกวัสดุคงคลัง</h1>
+            <p>ตรวจสอบจำนวนคงเหลือ (Unrestricted) ค้นหา และดูรูปภาพวัสดุ</p>
+          </div>
+        </div>
+
+        <!-- Stats Overview Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">📦</div>
+            <div class="stat-details">
+              <span class="stat-label">รายการวัสดุทั้งหมด</span>
+              <span id="statTotalItems" class="stat-value">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon green">✅</div>
+            <div class="stat-details">
+              <span class="stat-label">พร้อมเบิก (In Stock)</span>
+              <span id="statInStock" class="stat-value">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon amber">⚠️</div>
+            <div class="stat-details">
+              <span class="stat-label">ใกล้หมด (เหลือน้อยกว่า 5)</span>
+              <span id="statLowStock" class="stat-value">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon red">❌</div>
+            <div class="stat-details">
+              <span class="stat-label">สินค้าหมดสต๊อก</span>
+              <span id="statOutStock" class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="inventorySearchInput" placeholder="ค้นหาด้วยชื่อวัสดุ หรือ รหัส Material (เช่น 10100022, เทป, กระดาษ)...">
+          </div>
+
+          <div class="filter-actions">
+            <select id="stockFilterSelect" class="select-filter">
+              <option value="all">สถานะสต๊อกทั้งหมด</option>
+              <option value="in_stock">เฉพาะที่มีของพร้อมเบิก (> 0)</option>
+              <option value="low_stock">เฉพาะที่ใกล้หมด (1 - 5)</option>
+              <option value="out_stock">เฉพาะที่หมดสต๊อก (0)</option>
+            </select>
+
+            <select id="imageFilterSelect" class="select-filter">
+              <option value="all">รูปภาพทั้งหมด</option>
+              <option value="has_img">เฉพาะที่มีรูปภาพ</option>
+              <option value="no_img">เฉพาะที่ไม่มีรูปภาพ</option>
+            </select>
+
+            <button id="btnToggleGridView" class="btn-view-toggle active" title="แสดงแบบการ์ด">
+              <span>🔲</span> การ์ด
+            </button>
+            <button id="btnToggleTableView" class="btn-view-toggle" title="แสดงแบบตาราง">
+              <span>📑</span> ตาราง
+            </button>
+          </div>
+        </div>
+
+        <!-- Materials Container (Grid View) -->
+        <div id="materialsGridContainer" class="materials-grid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Materials Table View (Hidden by default) -->
+        <div id="materialsTableContainer" class="table-container" style="display: none;">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width: 60px; text-align: center;">รูปภาพ</th>
+                <th style="width: 130px;">รหัส Material</th>
+                <th>ชื่อวัสดุคงคลัง (Material Description)</th>
+                <th style="width: 100px; text-align: center;">หน่วยนับ</th>
+                <th style="width: 130px; text-align: right;">คงเหลือ (Unrestricted)</th>
+                <th style="width: 120px; text-align: center;">สถานะ</th>
+                <th style="width: 120px; text-align: center;">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="materialsTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 2: เบิกวัสดุคงคลัง (Requisition Cart) -->
+      <!-- ============================================================== -->
+      <section id="view-requisition" class="view-section">
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1><span>📝</span> เบิกวัสดุคงคลัง</h1>
+            <p>เลือกภาควิชา/หน่วยงาน เลือกวัสดุที่ต้องการ ระบุจำนวน และส่งขออนุมัติเบิก</p>
+          </div>
+        </div>
+
+        <div class="requisition-layout">
+          <!-- Left Column: Material Selector -->
+          <div class="requisition-catalog">
+            <div class="filter-bar" style="margin-bottom: 1rem;">
+              <div class="search-input-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="reqSearchInput" placeholder="ค้นหาวัสดุที่ต้องการเบิก...">
+              </div>
+            </div>
+
+            <div id="reqMaterialsGrid" class="materials-grid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Right Column: Cart & Requisition Info Panel -->
+          <div class="cart-panel">
+            <div class="cart-panel-title">
+              <span>🛒 รายการที่เลือกเบิก</span>
+              <button id="btnClearCart" class="btn-del-item" style="font-size: 0.8rem; padding: 4px 8px;" title="ล้างตะกร้า">ล้างทั้งหมด</button>
+            </div>
+
+            <!-- Form: Department & Requester -->
+            <div class="form-group">
+              <label class="form-label">ภาควิชา / หน่วยงาน <span class="req">*</span></label>
+              <select id="reqDepartmentSelect" class="form-control">
+                <option value="">-- กรุณาเลือกภาควิชา/หน่วยงาน --</option>
+                <!-- Populated by JS from Sheet ภาควิชา -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">ชื่อผู้ขอเบิก <span class="req">*</span></label>
+              <input type="text" id="reqRequesterName" class="form-control" placeholder="เช่น สมเจตน์ รัตนผล">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">วัตถุประสงค์ / หมายเหตุการเบิก</label>
+              <input type="text" id="reqRemark" class="form-control" placeholder="เช่น ใช้ในการเรียนการสอน, กิจกรรมภาควิชา">
+            </div>
+
+            <!-- Cart Items List -->
+            <label class="form-label">รายการวัสดุในตะกร้า (<span id="cartCountLabel">0</span> รายการ)</label>
+            <div id="cartItemsList" class="cart-items-list">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Summary Total -->
+            <div class="cart-summary-total">
+              <span>จำนวนชิ้นรวมทั้งหมด:</span>
+              <span id="cartTotalQty">0 ชิ้น</span>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem;">
+              <button id="btnSubmitRequisition" class="btn-primary" disabled>
+                <span>📤</span> ยืนยันสร้างใบเบิก (ขออนุมัติ)
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 3: อนุมัติใบเบิก (Approvals - Admin Only) -->
+      <!-- ============================================================== -->
+      <section id="view-approvals" class="view-section">
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1><span>✅</span> อนุมัติใบเบิกวัสดุ (เฉพาะผู้ดูแลระบบ)</h1>
+            <p>ตรวจสอบใบเบิกที่ส่งเข้ามา และกดอนุมัติเพื่อตัดยอดสต๊อกจริงแบบ Real-time</p>
+          </div>
+        </div>
+
+        <div id="pendingApprovalsContainer">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 4: ประวัติและสถานะใบเบิก (Requisition History) -->
+      <!-- ============================================================== -->
+      <section id="view-history" class="view-section">
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1><span>📋</span> ประวัติและสถานะใบเบิกวัสดุ</h1>
+            <p>ตรวจสอบสถานะใบเบิก ดูใบเบิกทางการ และสั่งพิมพ์หรือบันทึกเป็น PDF</p>
+          </div>
+        </div>
+
+        <!-- History Filter Bar -->
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="historySearchInput" placeholder="ค้นหาเลขที่ใบเบิก, ภาควิชา, ชื่อผู้เบิก...">
+          </div>
+
+          <div class="filter-actions">
+            <select id="historyDeptFilter" class="select-filter">
+              <option value="all">ทุกภาควิชา/หน่วยงาน</option>
+              <!-- Populated by JS -->
+            </select>
+
+            <select id="historyStatusFilter" class="select-filter">
+              <option value="all">ทุกสถานะ</option>
+              <option value="pending">🟡 รอการอนุมัติ</option>
+              <option value="approved">🟢 อนุมัติแล้ว</option>
+              <option value="rejected">🔴 ไม่อนุมัติ</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width: 140px;">เลขที่ใบเบิก</th>
+                <th style="width: 150px;">วันที่-เวลา</th>
+                <th>ภาควิชา / หน่วยงาน</th>
+                <th>ผู้ขอเบิก</th>
+                <th style="width: 100px; text-align: center;">จำนวนรายการ</th>
+                <th style="width: 110px; text-align: right;">จำนวนชิ้นรวม</th>
+                <th style="width: 130px; text-align: center;">สถานะ</th>
+                <th style="width: 160px; text-align: center;">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- VIEW 5: สรุปรายงานการเบิก (Analytics & Reports) -->
+      <!-- ============================================================== -->
+      <section id="view-reports" class="view-section">
+        <div class="page-header">
+          <div class="page-title-group">
+            <h1><span>📊</span> สรุปรายงานการเบิกวัสดุคงคลัง</h1>
+            <p>สรุปยอดการเบิกรายเดือน รายตัววัสดุ และจำแนกตามภาควิชา/หน่วยงาน (คำนวณจากใบเบิกที่อนุมัติแล้ว)</p>
+          </div>
+
+          <!-- Admin Direct Save Button -->
+          <button id="btnExportCSV" class="btn-primary" style="width: auto; padding: 0.6rem 1.25rem; display: none;">
+            <span>💾</span> บันทึกลงไฟล์ Excel (Sheet การเบิก)
+          </button>
+        </div>
+
+        <!-- Reports Filter -->
+        <div class="filter-bar">
+          <div class="filter-actions" style="width: 100%; justify-content: flex-start; gap: 1rem;">
+            <!-- Year Filter -->
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label class="form-label" style="margin: 0; font-weight: 600;">📅 เลือกปี (พ.ศ.):</label>
+              <select id="reportYearFilter" class="select-filter">
+                <option value="all">ทุกปี</option>
+                <option value="2569">2569</option>
+                <option value="2570">2570</option>
+                <option value="2571">2571</option>
+              </select>
+            </div>
+
+            <!-- Month Filter -->
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label class="form-label" style="margin: 0; font-weight: 600;">🗓️ เลือกเดือน:</label>
+              <select id="reportMonthFilter" class="select-filter">
+                <option value="all">ทุกเดือน (ทั้งปี)</option>
+                <option value="01">01 - มกราคม</option>
+                <option value="02">02 - กุมภาพันธ์</option>
+                <option value="03">03 - มีนาคม</option>
+                <option value="04">04 - เมษายน</option>
+                <option value="05">05 - พฤษภาคม</option>
+                <option value="06">06 - มิถุนายน</option>
+                <option value="07">07 - กรกฎาคม</option>
+                <option value="08">08 - สิงหาคม</option>
+                <option value="09">09 - กันยายน</option>
+                <option value="10">10 - ตุลาคม</option>
+                <option value="11">11 - พฤศจิกายน</option>
+                <option value="12">12 - ธันวาคม</option>
+              </select>
+            </div>
+
+            <!-- Department Filter -->
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label class="form-label" style="margin: 0; font-weight: 600;">🏢 กรองตามภาควิชา:</label>
+              <select id="reportDeptFilter" class="select-filter">
+                <option value="all">ทุกภาควิชา/หน่วยงาน</option>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon green">📄</div>
+            <div class="stat-details">
+              <span class="stat-label">ใบเบิกที่อนุมัติแล้ว</span>
+              <span id="reportApprovedCount" class="stat-value">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon blue">📦</div>
+            <div class="stat-details">
+              <span class="stat-label">จำนวนวัสดุที่เบิกรวม (ชิ้น)</span>
+              <span id="reportTotalUnits" class="stat-value">0</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon amber">🏢</div>
+            <div class="stat-details">
+              <span class="stat-label">ภาควิชาที่มีการเบิก</span>
+              <span id="reportActiveDepts" class="stat-value">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Sections: Top Materials & Department Breakdown -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+          
+          <!-- Top Materials Table -->
+          <div class="table-container">
+            <div style="padding: 1rem 1.25rem; font-weight: 700; border-bottom: 1px solid var(--border-color); background: #f8fafc;">
+              🏆 รายการวัสดุที่มีการเบิกใช้สูงสุด (Top Requested Materials)
+            </div>
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px; text-align: center;">อันดับ</th>
+                  <th style="width: 110px;">รหัส</th>
+                  <th>ชื่อวัสดุ</th>
+                  <th style="width: 100px; text-align: right;">จำนวนที่เบิก</th>
+                  <th style="width: 70px; text-align: center;">หน่วย</th>
+                </tr>
+              </thead>
+              <tbody id="reportTopMaterialsBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Department Breakdown Table -->
+          <div class="table-container">
+            <div style="padding: 1rem 1.25rem; font-weight: 700; border-bottom: 1px solid var(--border-color); background: #f8fafc;">
+              🏢 ยอดการเบิกจำแนกตามภาควิชา/หน่วยงาน
+            </div>
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>ภาควิชา / หน่วยงาน (คลิกดูใบเบิก)</th>
+                  <th style="width: 130px; text-align: center;">จำนวนใบเบิก</th>
+                </tr>
+              </thead>
+              <tbody id="reportDeptBreakdownBody">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 1: เข้าสู่ระบบ / สลับผู้ใช้งาน (Login / Switch User Modal) -->
+  <!-- ============================================================== -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">🔐 เข้าสู่ระบบ / เลือกบทบาทผู้ใช้งาน</h3>
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: var(--primary-light); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid rgba(0, 122, 88, 0.2); margin-bottom: 1.5rem; text-align: center;">
+          <h4 style="color: var(--primary); font-size: 1.05rem; margin-bottom: 0.4rem;">🏢 สำหรับภาควิชา / หน่วยงาน</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">เข้าใช้งานเพื่อค้นหาสต๊อก สร้างใบเบิก และดูสถานะได้ทันทีโดยไม่ต้องใส่รหัสผ่าน</p>
+          <button id="btnGuestAccess" class="btn-primary" style="width: auto; padding: 0.6rem 1.5rem; margin: 0 auto;">
+            เข้าใช้งานโดยภาควิชา/หน่วยงาน ทันที
+          </button>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 1.25rem; position: relative;">
+          <hr style="border: 0; border-top: 1px solid var(--border-color);">
+          <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #fff; padding: 0 10px; font-size: 0.78rem; color: var(--text-muted);">หรือ</span>
+        </div>
+
+        <form id="adminLoginForm">
+          <h4 style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.75rem;">👨‍💼 เข้าสู่ระบบสำหรับผู้ดูแลระบบ (Admin)</h4>
+          <div class="form-group">
+            <label class="form-label">Username:</label>
+            <input type="text" id="loginUsername" class="form-control" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password:</label>
+            <input type="password" id="loginPassword" class="form-control" required autocomplete="current-password">
+          </div>
+          <p id="loginErrorMsg" style="color: var(--accent-red); font-size: 0.82rem; margin-bottom: 0.75rem; display: none;">Username หรือ Password ไม่ถูกต้อง (admin/admin)</p>
+          <button type="submit" class="btn-primary" style="background: #0f172a;">
+            เข้าสู่ระบบ Admin
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 2: ดูใบเบิกวัสดุทางการ (Official Requisition Slip Modal) -->
+  <!-- ============================================================== -->
+  <div id="slipModal" class="modal-overlay">
+    <div class="modal-content modal-large">
+      <div class="modal-header no-print">
+        <h3 class="modal-title">📄 ใบเบิกวัสดุทางการ (Official Requisition Slip)</h3>
+        <button class="modal-close" onclick="closeSlipModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="background: #f1f5f9; padding: 1.5rem 1rem;">
+        <div id="printableSlipContainer" class="slip-container">
+          
+          <div class="slip-header">
+            <div class="slip-logo-wrapper">
+              <img src="logo.png" alt="MED SWU Logo" class="slip-logo" onerror="this.src='MEDSWU+80.png'">
+            </div>
+            <div class="slip-inst-title">คณะแพทยศาสตร์ มหาวิทยาลัยศรีนครินทรวิโรฒ</div>
+            <div class="slip-main-title">ใบเบิกวัสดุ</div>
+          </div>
+
+          <div class="slip-meta-grid">
+            <div class="slip-meta-item">
+              <span class="slip-meta-label">เลขที่ใบเบิก:</span>
+              <span id="slipReqNo" class="slip-meta-val" style="font-weight: 700; color: #007a58;">-</span>
+            </div>
+            <div class="slip-meta-item">
+              <span class="slip-meta-label">วันที่-เวลา:</span>
+              <span id="slipDate" class="slip-meta-val">-</span>
+            </div>
+            <div class="slip-meta-item">
+              <span class="slip-meta-label">ภาควิชา/หน่วยงาน:</span>
+              <span id="slipDept" class="slip-meta-val" style="font-weight: 600;">-</span>
+            </div>
+            <div class="slip-meta-item">
+              <span class="slip-meta-label">สถานะใบเบิก:</span>
+              <span id="slipStatusBadge" class="slip-meta-val">-</span>
+            </div>
+            <div class="slip-meta-item" style="grid-column: 1 / -1;">
+              <span class="slip-meta-label">วัตถุประสงค์:</span>
+              <span id="slipRemark" class="slip-meta-val">-</span>
+            </div>
+          </div>
+
+          <!-- Formal Request Salutation Section -->
+          <div class="slip-formal-text-section">
+            <div class="slip-salutation"><strong>เรียน</strong> คณบดีคณะแพทยศาสตร์</div>
+            <div class="slip-body-paragraph">
+              ข้าพเจ้ามีความประสงค์จะขอเบิกพัสดุ สำหรับใช้ในส่วนงานของคณะแพทยศาสตร์ งาน/ภาควิชา <strong id="slipFormalDeptName" class="slip-dept-underline">....................</strong> ตามรายการข้างล่างนี้
+            </div>
+          </div>
+
+          <!-- Slip Items Table -->
+          <table class="slip-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">ลำดับ</th>
+                <th style="width: 120px;">รหัสวัสดุ (Material)</th>
+                <th>รายการวัสดุคงคลัง</th>
+                <th style="width: 90px;">หน่วยนับ</th>
+                <th style="width: 100px;">จำนวนที่เบิก</th>
+                <th style="width: 120px;">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="slipItemsBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+
+          <!-- Signatures Section (3 Signatures: ผู้เบิก, ผู้รับของ, ผู้อนุญาต) -->
+          <div class="slip-signatures-grid">
+            <div class="sig-box">
+              <div class="sig-title">ผู้เบิก</div>
+              <div class="sig-line"></div>
+              <div class="sig-name">( <span id="slipSigRequesterName">........................................</span> )</div>
+              <div class="sig-date">วันที่ ......./......./...........</div>
+            </div>
+
+            <div class="sig-box">
+              <div class="sig-title">ผู้รับของ</div>
+              <div class="sig-line"></div>
+              <div class="sig-name">( ........................................ )</div>
+              <div class="sig-date">วันที่ ......./......./...........</div>
+            </div>
+
+            <div class="sig-box">
+              <div class="sig-title">ผู้อนุญาต</div>
+              <div id="slipApprovalSigContent">
+                <div class="sig-line"></div>
+                <div class="sig-name">( ........................................ )</div>
+                <div class="sig-date">ตำแหน่ง: หัวหน้างานพัสดุ</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: ได้รับของแล้วและลงบัญชี & ท้ายใบเบิกกึ่งกลางหน้ากระดาษ -->
+          <div class="slip-inventory-ack-section">
+            <div class="slip-ack-box">
+              <div style="font-weight: 600; margin-bottom: 1.5rem;">ได้รับของแล้วและลงบัญชี</div>
+              <div class="sig-line" style="width: 240px; margin: 0 auto 0.35rem;"></div>
+              <div style="font-weight: 600;">เจ้าหน้าที่พัสดุ</div>
+            </div>
+
+            <div class="slip-center-footer-lines">
+              <div class="footer-line-1" style="font-weight: 600; margin-bottom: 0.25rem;">
+                ใบเบิก <span id="slipFooterReqNo">...........</span> / .................... เจ้าหน้าที่พัสดุ
+              </div>
+              <div class="footer-line-2" style="font-weight: 500; color: #334155;">
+                วันที่ <span id="slipFooterDate">-</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button class="btn-secondary" onclick="closeSlipModal()">ปิดหน้าต่าง</button>
+        <button id="btnPrintSlip" class="btn-primary" style="width: auto;">
+          <span>🖨️</span> สั่งพิมพ์ / บันทึกเป็น PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 3: ขยายดูรูปภาพวัสดุ (Image Zoom Modal) -->
+  <!-- ============================================================== -->
+  <div id="imageZoomModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="imageZoomTitle" class="modal-title">รูปภาพวัสดุคงคลัง</h3>
+        <button class="modal-close" onclick="closeImageZoomModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="image-zoom-view">
+          <img id="imageZoomSrc" src="" alt="รูปวัสดุ" class="image-zoom-img">
+          <div id="imageZoomCaption" style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary); text-align: center;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- MODAL 4: รายการใบเบิกของภาควิชา (Department Requisitions Modal) -->
+  <!-- ============================================================== -->
+  <div id="deptReqsModal" class="modal-overlay">
+    <div class="modal-content modal-large">
+      <div class="modal-header">
+        <h3 id="deptReqsModalTitle" class="modal-title">📋 รายการใบเบิกของภาควิชา</h3>
+        <button class="modal-close" onclick="closeDeptReqsModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th style="width: 140px;">เลขที่ใบเบิก</th>
+                <th style="width: 150px;">วันที่-เวลา</th>
+                <th>ผู้ขอเบิก</th>
+                <th style="width: 100px; text-align: center;">จำนวนรายการ</th>
+                <th style="width: 130px; text-align: center;">สถานะ</th>
+                <th style="width: 130px; text-align: center;">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="deptReqsTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeDeptReqsModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="xlsx.full.min.js"></script>
+  <script src="materials_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
